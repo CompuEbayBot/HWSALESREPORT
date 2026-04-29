@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HW- SKU Sales Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #00e5a0;
+    --accent2: #5b6bff;
+    --accent3: #ff6b6b;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --card-glow: 0 0 40px rgba(0, 229, 160, 0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(91, 107, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91, 107, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header-left {}
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Upload Zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 56px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0, 229, 160, 0.04) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .upload-zone:hover::before,
+  .upload-zone.dragover::before { opacity: 1; }
+
+  .upload-zone:hover,
+  .upload-zone.dragover {
+    border-color: var(--accent);
+    background: #12121a;
+  }
+
+  .upload-zone.dragover {
+    border-style: solid;
+    transform: scale(1.01);
+  }
+
+  .upload-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.25s;
+  }
+
+  .upload-zone:hover .upload-icon {
+    border-color: var(--accent);
+    background: rgba(0, 229, 160, 0.08);
+  }
+
+  .upload-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .upload-hint {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .upload-hint strong {
+    color: var(--accent);
+  }
+
+  #fileInput { display: none; }
+
+  .upload-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 24px;
+    background: rgba(0, 229, 160, 0.1);
+    border: 1px solid rgba(0, 229, 160, 0.3);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .upload-btn:hover {
+    background: rgba(0, 229, 160, 0.18);
+    border-color: var(--accent);
+  }
+
+  /* Status bar */
+  #statusBar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 32px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  #statusBar.visible { display: flex; }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Results */
+  #results { display: none; }
+  #results.visible { display: block; }
+
+  /* Month badge */
+  .month-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(91, 107, 255, 0.12);
+    border: 1px solid rgba(91, 107, 255, 0.3);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #8a99ff;
+    letter-spacing: 0.08em;
+    margin-bottom: 32px;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-glow);
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  .stat-card.blue::after { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .stat-card.red::after { background: linear-gradient(90deg, var(--accent3), transparent); }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.blue { color: var(--accent2); }
+  .stat-value.red { color: var(--accent3); }
+
+  .stat-sub {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Section heading */
+  .section-heading {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .section-heading .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--muted);
+    padding: 2px 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* SKU Table */
+  .table-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+
+  .table-toolbar {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    width: 220px;
+    transition: border-color 0.2s;
+  }
+
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: var(--accent); }
+
+  .sort-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  .sort-btn {
+    padding: 7px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover { color: var(--text); border-color: #3a3a55; }
+  .sort-btn.active { color: var(--accent); border-color: rgba(0, 229, 160, 0.4); background: rgba(0, 229, 160, 0.08); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    padding: 12px 20px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    font-weight: 500;
+  }
+
+  thead th:not(:first-child) { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(42, 42, 61, 0.5);
+    transition: background 0.15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255, 0.02); }
+
+  tbody td {
+    padding: 14px 20px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  tbody td:not(:first-child) { text-align: right; }
+
+  .sku-label {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--accent);
+    font-size: 12px;
+    background: rgba(0, 229, 160, 0.07);
+    padding: 3px 10px;
+    border-radius: 5px;
+    display: inline-block;
+  }
+
+  .revenue-cell {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .units-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .units-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(91, 107, 255, 0.2);
+    flex: 1;
+    max-width: 80px;
+    overflow: hidden;
+  }
+
+  .units-bar-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .rank-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .rank-pill.top { background: rgba(0, 229, 160, 0.12); color: var(--accent); border-color: rgba(0, 229, 160, 0.3); }
+
+  /* Top sellers visual */
+  .top-bar-section {
+    margin-bottom: 40px;
+  }
+
+  .bar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(42,42,61,0.4);
+  }
+
+  .bar-item:last-child { border-bottom: none; }
+
+  .bar-sku {
+    font-size: 11px;
+    color: var(--accent);
+    width: 130px;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .bar-revenue {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    width: 80px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* No HW items */
+  .empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+
+  /* Export btn */
+  .export-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(0, 229, 160, 0.1);
+    border: 1px solid rgba(0, 229, 160, 0.3);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .export-btn:hover {
+    background: rgba(0, 229, 160, 0.18);
+    border-color: var(--accent);
+  }
+
+  /* Reset */
+  .reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover { color: var(--accent3); border-color: var(--accent3); }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card, .table-wrapper, .top-bar-section {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+  /* Footer */
+  .footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Date filter row */
+  .date-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.4);
+  }
+
+  .date-filter-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .date-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    transition: border-color 0.2s;
+    color-scheme: dark;
+  }
+
+  .date-input:focus { border-color: var(--accent); }
+
+  .date-sep { color: var(--muted); font-size: 11px; }
+
+  .date-clear {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .date-clear:hover { color: var(--accent3); border-color: var(--accent3); }
+
+  /* Monthly breakdown section */
+  .monthly-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+
+  .month-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: transform 0.15s, border-color 0.15s;
+    cursor: default;
+  }
+
+  .month-card:hover { transform: translateY(-1px); border-color: #3a3a55; }
+
+  .month-card-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .month-card-rev {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .month-card-units {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Date cell styling */
+  .date-cell {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a55; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="eyebrow">eBay Sales Intelligence</div>
+      <h1>HW<span>-</span> SKU<br>Sales Report</h1>
+      <p class="subtitle">Upload your eBay CSV export to analyze Hardware SKU performance,<br>revenue, and order data for the period.</p>
+    </div>
+    <button class="reset-btn" id="resetBtn" style="display:none" onclick="resetAll()">↺ New File</button>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="upload-icon">📂</div>
+    <div class="upload-label">Drop your eBay CSV here</div>
+    <p class="upload-hint">Headers must be on <strong>row 2</strong> · Filters for <strong>Custom Label</strong> starting with <strong>HW-</strong></p>
+    <label for="fileInput" class="upload-btn">Browse File</label>
+    <input type="file" id="fileInput" accept=".csv">
+  </div>
+
+  <div id="statusBar">
+    <span class="status-dot"></span>
+    <span id="statusText">Processing...</span>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div class="month-badge" id="monthBadge">📅 —</div>
+
+    <!-- KPI Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total HW- Revenue</div>
+        <div class="stat-value accent" id="kpiRevenue">$0.00</div>
+        <div class="stat-sub" id="kpiRevenueSub">from HW- SKUs</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Units Sold</div>
+        <div class="stat-value blue" id="kpiUnits">0</div>
+        <div class="stat-sub" id="kpiUnitsSub">across all HW- SKUs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Order Count</div>
+        <div class="stat-value" id="kpiOrders">0</div>
+        <div class="stat-sub">unique orders with HW- items</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Unique SKUs</div>
+        <div class="stat-value red" id="kpiSkus">0</div>
+        <div class="stat-sub">distinct HW- products</div>
+      </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div id="monthlySection" style="margin-bottom:40px;">
+      <div class="section-heading">Revenue by Month <span class="tag" id="monthCount">—</span></div>
+      <div class="monthly-grid" id="monthlyGrid"></div>
+    </div>
+
+    <!-- Top 5 by Revenue Bar Chart -->
+    <div class="top-bar-section" id="topBarsSection">
+      <div class="section-heading">Top SKUs by Revenue <span class="tag">TOP 5</span></div>
+      <div id="topBars"></div>
+    </div>
+
+    <!-- SKU Table -->
+    <div class="section-heading">Full HW- SKU Breakdown <span class="tag" id="skuCount">0 SKUs</span></div>
+    <div class="export-row">
+      <button class="export-btn" onclick="exportCSV()">⬇ Export Report CSV</button>
+    </div>
+    <div class="table-wrapper">
+      <div class="date-filter-row">
+        <span class="date-filter-label">📅 Date Range</span>
+        <input type="date" class="date-input" id="dateFrom" onchange="filterTable()">
+        <span class="date-sep">→</span>
+        <input type="date" class="date-input" id="dateTo" onchange="filterTable()">
+        <button class="date-clear" onclick="clearDates()">✕ Clear</button>
+      </div>
+      <div class="table-toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search SKU..." oninput="filterTable()">
+        <div class="sort-btns">
+          <button class="sort-btn active" onclick="sortTable('revenue')">Sort: Revenue</button>
+          <button class="sort-btn" onclick="sortTable('units')">Sort: Units</button>
+          <button class="sort-btn" onclick="sortTable('orders')">Sort: Orders</button>
+          <button class="sort-btn" onclick="sortTable('date')">Sort: Date</button>
+          <button class="sort-btn" onclick="sortTable('sku')">Sort: SKU A–Z</button>
+        </div>
+      </div>
+      <div id="tableContainer">
+        <div class="empty-state"><div class="icon">📦</div>No data loaded yet.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">HW- SKU Sales Report · eBay Data Analyzer</div>
+</div>
+<script>
+  let allData = [];
+  let currentSort = 'revenue';
+  let maxUnits = 1;
+  let maxRevenue = 1;
+
+  // Drag & Drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  });
+  zone.addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+
+  function showStatus(msg) {
+    const bar = document.getElementById('statusBar');
+    bar.classList.add('visible');
+    document.getElementById('statusText').textContent = msg;
+  }
+
+  function hideStatus() {
+    document.getElementById('statusBar').classList.remove('visible');
+  }
+
+  function resetAll() {
+    allData = [];
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('uploadZone').style.display = '';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    hideStatus();
+  }
+
+  function handleFile(file) {
+    if (!file || !file.name.toLowerCase().endsWith('.csv')) {
+      alert('Please upload a valid .csv file.');
+      return;
+    }
+
+    showStatus(`Reading ${file.name}...`);
+
+    const reader = new FileReader();
+    reader.onload = e => parseCSV(e.target.result);
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text) {
+    showStatus('Parsing rows...');
+
+    const lines = text
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l.length);
+
+    // Row 2 (index 1) = headers
+    if (lines.length < 2) {
+      alert('CSV too short — headers must be on row 2.');
+      hideStatus();
+      return;
+    }
+
+    const headers = parseRow(lines[1]).map(h => h.trim());
+
+    const idx = name => headers.findIndex(h => h.toLowerCase() === name.toLowerCase());
+
+    const COL = {
+      customLabel: idx('Custom Label'),
+      quantity:    idx('Quantity'),
+      soldFor:     idx('Sold For'),
+      orderNumber: idx('Order Number'),
+      saleDate:    idx('Sale Date'),
+      itemTitle:   idx('Item Title')
+    };
+
+    if (COL.customLabel === -1) {
+      alert('Could not find "Custom Label" column. Check that headers are on row 2.');
+      hideStatus();
+      return;
+    }
+
+    if (COL.saleDate === -1) {
+      alert('Could not find "Sale Date" column. Date tracking requires this column in the imported CSV.');
+      hideStatus();
+      return;
+    }
+
+    const skuMap = {};
+    const orderSet = new Set();
+    const months = new Set();
+
+    let rowsProcessed = 0;
+
+    for (let i = 2; i < lines.length; i++) {
+      const cols = parseRow(lines[i]);
+      if (!cols || cols.length < headers.length) continue;
+
+      const label = (cols[COL.customLabel] || '').trim();
+      if (!label.toUpperCase().startsWith('HW-')) continue;
+
+      const sku = label.toUpperCase();
+      const qty = parseFloat(cols[COL.quantity]) || 1;
+      const rawSoldFor = String(cols[COL.soldFor] || '0').replace(/[^0-9.]/g, '');
+      const revenue = parseFloat(rawSoldFor) || 0;
+      const orderNum = cols[COL.orderNumber] || '';
+      const saleDateRaw = cols[COL.saleDate] || '';
+      const saleDateObj = parseSaleDate(saleDateRaw);
+      const saleDateMs = saleDateObj ? saleDateObj.getTime() : null;
+
+      if (orderNum) orderSet.add(orderNum);
+
+      if (saleDateObj) {
+        months.add(`${saleDateObj.getFullYear()}-${String(saleDateObj.getMonth() + 1).padStart(2, '0')}`);
+      }
+
+      if (!skuMap[sku]) {
+        skuMap[sku] = {
+          sku,
+          units: 0,
+          revenue: 0,
+          orders: new Set(),
+          sales: [],
+          firstSoldMs: null,
+          lastSoldMs: null
+        };
+      }
+
+      skuMap[sku].units += qty;
+      skuMap[sku].revenue += revenue;
+      if (orderNum) skuMap[sku].orders.add(orderNum);
+
+      skuMap[sku].sales.push({
+        dateRaw: saleDateRaw,
+        dateMs: saleDateMs,
+        qty,
+        revenue,
+        orderNum
+      });
+
+      if (saleDateMs !== null) {
+        if (skuMap[sku].firstSoldMs === null || saleDateMs < skuMap[sku].firstSoldMs) {
+          skuMap[sku].firstSoldMs = saleDateMs;
+        }
+
+        if (skuMap[sku].lastSoldMs === null || saleDateMs > skuMap[sku].lastSoldMs) {
+          skuMap[sku].lastSoldMs = saleDateMs;
+        }
+      }
+
+      rowsProcessed++;
+    }
+
+    allData = Object.values(skuMap).map(d => ({
+      ...d,
+      orders: d.orders.size
+    }));
+
+    if (allData.length === 0) {
+      hideStatus();
+      alert('No rows with Custom Label starting with "HW-" were found.');
+      return;
+    }
+
+    maxUnits = Math.max(...allData.map(d => d.units));
+    maxRevenue = Math.max(...allData.map(d => d.revenue));
+
+    let monthLabel = '—';
+
+    if (months.size === 1) {
+      const [y, m] = [...months][0].split('-');
+      monthLabel = new Date(y, m - 1).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+      });
+    } else if (months.size > 1) {
+      const sorted = [...months].sort();
+      const fmt = s => {
+        const [y, m] = s.split('-');
+        return new Date(y, m - 1).toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric'
+        });
+      };
+      monthLabel = `${fmt(sorted[0])} – ${fmt(sorted[sorted.length - 1])}`;
+    }
+
+    renderResults(monthLabel);
+    hideStatus();
+    showStatus(`✓ Loaded ${rowsProcessed} HW- line items across ${allData.length} SKUs`);
+    setTimeout(hideStatus, 3000);
+  }
+
+  function parseRow(line) {
+    const result = [];
+    let inQuote = false;
+    let cur = '';
+
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+
+      if (c === '"') {
+        if (inQuote && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuote = !inQuote;
+        }
+      } else if (c === ',' && !inQuote) {
+        result.push(cur);
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+
+    result.push(cur);
+    return result;
+  }
+
+  function parseSaleDate(value) {
+    if (!value) return null;
+
+    const cleaned = String(value)
+      .replace(/"/g, '')
+      .trim();
+
+    if (!cleaned) return null;
+
+    const parsed = new Date(cleaned);
+    if (!isNaN(parsed.getTime())) return parsed;
+
+    return null;
+  }
+
+  function fmtDate(ms) {
+    if (ms === null || ms === undefined) return '—';
+
+    return new Date(ms).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  function getDateFilterBounds() {
+    const fromVal = document.getElementById('dateFrom').value;
+    const toVal = document.getElementById('dateTo').value;
+
+    const fromMs = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
+    const toMs = toVal ? new Date(toVal + 'T23:59:59').getTime() : null;
+
+    return { fromMs, toMs };
+  }
+
+  function getFilteredSkuData() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const { fromMs, toMs } = getDateFilterBounds();
+    const hasDateFilter = fromMs !== null || toMs !== null;
+
+    return allData
+      .filter(d => d.sku.toLowerCase().includes(search))
+      .map(d => {
+        const filteredSales = d.sales.filter(sale => {
+          if (!hasDateFilter) return true;
+          if (sale.dateMs === null) return false;
+          if (fromMs !== null && sale.dateMs < fromMs) return false;
+          if (toMs !== null && sale.dateMs > toMs) return false;
+          return true;
+        });
+
+        const orderSet = new Set();
+        let units = 0;
+        let revenue = 0;
+        let firstSoldMs = null;
+        let lastSoldMs = null;
+
+        filteredSales.forEach(sale => {
+          units += sale.qty;
+          revenue += sale.revenue;
+
+          if (sale.orderNum) orderSet.add(sale.orderNum);
+
+          if (sale.dateMs !== null) {
+            if (firstSoldMs === null || sale.dateMs < firstSoldMs) firstSoldMs = sale.dateMs;
+            if (lastSoldMs === null || sale.dateMs > lastSoldMs) lastSoldMs = sale.dateMs;
+          }
+        });
+
+        return {
+          sku: d.sku,
+          units,
+          revenue,
+          orders: orderSet.size,
+          firstSoldMs,
+          lastSoldMs,
+          sales: filteredSales
+        };
+      })
+      .filter(d => d.units > 0 || d.revenue > 0);
+  }
+
+  function renderResults(monthLabel) {
+    document.getElementById('monthBadge').textContent = `📅 ${monthLabel}`;
+
+    updateFilteredKpis(getFilteredSkuData());
+    renderMonthlyBreakdown();
+    renderTopBars();
+    renderTable();
+
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('uploadZone').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'flex';
+  }
+
+  function updateFilteredKpis(data) {
+    const totalRevenue = data.reduce((s, d) => s + d.revenue, 0);
+    const totalUnits = data.reduce((s, d) => s + d.units, 0);
+
+    const orderSet = new Set();
+    data.forEach(d => {
+      d.sales.forEach(sale => {
+        if (sale.orderNum) orderSet.add(sale.orderNum);
+      });
+    });
+
+    document.getElementById('kpiRevenue').textContent = fmtMoney(totalRevenue);
+    document.getElementById('kpiUnits').textContent = totalUnits.toLocaleString();
+    document.getElementById('kpiOrders').textContent = orderSet.size.toLocaleString();
+    document.getElementById('kpiSkus').textContent = data.length;
+    document.getElementById('kpiUnitsSub').textContent = `across ${data.length} SKUs`;
+    document.getElementById('skuCount').textContent = `${data.length} SKUs`;
+  }
+
+  function renderMonthlyBreakdown() {
+    const { fromMs, toMs } = getDateFilterBounds();
+    const hasDateFilter = fromMs !== null || toMs !== null;
+
+    const monthMap = {};
+
+    allData.forEach(sku => {
+      sku.sales.forEach(sale => {
+        if (sale.dateMs === null) return;
+
+        if (hasDateFilter) {
+          if (fromMs !== null && sale.dateMs < fromMs) return;
+          if (toMs !== null && sale.dateMs > toMs) return;
+        }
+
+        const d = new Date(sale.dateMs);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+        if (!monthMap[key]) {
+          monthMap[key] = {
+            key,
+            revenue: 0,
+            units: 0
+          };
+        }
+
+        monthMap[key].revenue += sale.revenue;
+        monthMap[key].units += sale.qty;
+      });
+    });
+
+    const months = Object.values(monthMap).sort((a, b) => a.key.localeCompare(b.key));
+
+    document.getElementById('monthCount').textContent =
+      `${months.length} MONTH${months.length === 1 ? '' : 'S'}`;
+
+    if (months.length === 0) {
+      document.getElementById('monthlyGrid').innerHTML =
+        `<div class="empty-state"><div class="icon">📅</div>No monthly data in this range.</div>`;
+      return;
+    }
+
+    document.getElementById('monthlyGrid').innerHTML = months.map(m => {
+      const [y, month] = m.key.split('-');
+      const label = new Date(y, month - 1).toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric'
+      });
+
+      return `
+        <div class="month-card">
+          <div class="month-card-label">${label}</div>
+          <div class="month-card-rev">${fmtMoney(m.revenue)}</div>
+          <div class="month-card-units">${m.units.toLocaleString()} units sold</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderTopBars(dataOverride) {
+    const data = dataOverride || getFilteredSkuData();
+    const top5 = [...data].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+    if (top5.length === 0) {
+      document.getElementById('topBars').innerHTML =
+        `<div class="empty-state"><div class="icon">📉</div>No sales in this time frame.</div>`;
+      return;
+    }
+
+    const maxR = Math.max(...top5.map(d => d.revenue));
+
+    const html = top5.map(d => `
+      <div class="bar-item">
+        <div class="bar-sku">${d.sku}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${maxR > 0 ? (d.revenue / maxR * 100).toFixed(1) : 0}%"></div>
+        </div>
+        <div class="bar-revenue">${fmtMoney(d.revenue)}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('topBars').innerHTML = html;
+  }
+
+  function renderTable() {
+    let data = getFilteredSkuData();
+
+    const sorts = {
+      revenue: (a, b) => b.revenue - a.revenue,
+      units:   (a, b) => b.units - a.units,
+      orders:  (a, b) => b.orders - a.orders,
+      date:    (a, b) => (b.lastSoldMs || 0) - (a.lastSoldMs || 0),
+      sku:     (a, b) => a.sku.localeCompare(b.sku)
+    };
+
+    data.sort(sorts[currentSort] || sorts.revenue);
+
+    updateFilteredKpis(data);
+    renderTopBars(data);
+    renderMonthlyBreakdown();
+
+    if (data.length === 0) {
+      document.getElementById('tableContainer').innerHTML =
+        `<div class="empty-state"><div class="icon">🔍</div>No SKUs match your search or date range.</div>`;
+      return;
+    }
+
+    const maxU = Math.max(...data.map(d => d.units));
+
+    const rows = data.map((d, i) => {
+      const pct = maxU > 0 ? (d.units / maxU * 100).toFixed(1) : 0;
+      const rankClass = i < 3 ? 'top' : '';
+
+      return `
+        <tr>
+          <td><span class="rank-pill ${rankClass}">${i + 1}</span></td>
+          <td><span class="sku-label">${d.sku}</span></td>
+          <td>
+            <div class="units-bar-wrap">
+              <div class="units-bar"><div class="units-bar-fill" style="width:${pct}%"></div></div>
+              ${d.units.toLocaleString()}
+            </div>
+          </td>
+          <td>${d.orders.toLocaleString()}</td>
+          <td><span class="revenue-cell">${fmtMoney(d.revenue)}</span></td>
+          <td>${d.units > 0 ? fmtMoney(d.revenue / d.units) : '—'}</td>
+          <td class="date-cell">${fmtDate(d.firstSoldMs)}</td>
+          <td class="date-cell">${fmtDate(d.lastSoldMs)}</td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('tableContainer').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>SKU</th>
+            <th>Units Sold</th>
+            <th>Orders</th>
+            <th>Revenue</th>
+            <th>Avg / Unit</th>
+            <th>First Sold</th>
+            <th>Last Sold</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function sortTable(col) {
+    currentSort = col;
+
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+
+    if (event && event.target) {
+      event.target.classList.add('active');
+    }
+
+    renderTable();
+  }
+
+  function filterTable() {
+    renderTable();
+  }
+
+  function clearDates() {
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    filterTable();
+  }
+
+  function fmtMoney(n) {
+    return '$' + n.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function exportCSV() {
+    let data = getFilteredSkuData();
+
+    const sorts = {
+      revenue: (a, b) => b.revenue - a.revenue,
+      units:   (a, b) => b.units - a.units,
+      orders:  (a, b) => b.orders - a.orders,
+      date:    (a, b) => (b.lastSoldMs || 0) - (a.lastSoldMs || 0),
+      sku:     (a, b) => a.sku.localeCompare(b.sku)
+    };
+
+    data.sort(sorts[currentSort] || sorts.revenue);
+
+    const rows = [[
+      'SKU',
+      'Units Sold',
+      'Order Count',
+      'Revenue',
+      'Avg Per Unit',
+      'First Sold',
+      'Last Sold'
+    ]];
+
+    data.forEach(d => {
+      rows.push([
+        d.sku,
+        d.units,
+        d.orders,
+        d.revenue.toFixed(2),
+        d.units > 0 ? (d.revenue / d.units).toFixed(2) : '',
+        fmtDate(d.firstSoldMs),
+        fmtDate(d.lastSoldMs)
+      ]);
+    });
+
+    const csv = rows
+      .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hw_sku_report_with_dates.csv';
+    a.click();
+  }
+</script>
+</body>
+</html>
